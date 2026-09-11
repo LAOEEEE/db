@@ -2,6 +2,8 @@
 
 运行在树莓派 3B 上的轻量级刮刮乐网页应用：
 
+> 当前版本 **v1.0.0**（2026-09-11）
+
 - 后端：Rust + Axum，单二进制提供 API 和静态文件
 - 前端：原生 HTML / CSS / JavaScript（Canvas 刮奖，无框架、无 Node 构建）
 - 存储：内存（`Arc<RwLock<...>>`），无需数据库
@@ -25,8 +27,11 @@
 ├── scripts/
 │   ├── build.sh         # WSL 内交叉编译 aarch64 并打包 dist/
 │   ├── deploy.sh        # rsync/scp 部署到树莓派并重启服务
+│   ├── check-pi.sh      # 部署后对 LAN API 做冒烟检查
 │   └── e2e-browser.mjs  # 无头浏览器端到端测试（鼠标 + 触摸）
-└── systemd/scratch-card.service
+├── systemd/
+│   └── scratch-card.service  # systemd 服务单元模板（含逐行配置注释）
+├── dist/                # 构建产物（已 gitignore）
 ```
 
 ## API
@@ -44,6 +49,8 @@
 
 ## 配置（config/game.json）
 
+下面是当前仓库中 `config/game.json` 的实际内容：
+
 ```json
 {
   "rewards": [
@@ -53,15 +60,24 @@
     { "name": "安慰奖", "symbol": "🍀", "value": 5,    "probability": 0.2 }
   ],
   "filler_symbols": ["⭐", "🍒", "🔔", "🍋", "🍇", "🍉"],
-  "daily_limit": 10,
-  "reveal_threshold": 0.4
+  "daily_limit": 0,
+  "reveal_threshold": 0.9
 }
 ```
 
-概率之和不能超过 1，其余为未中奖。中奖卡保证有且仅有一条三连（横/竖/斜）。
-`daily_limit` 为 0 表示不限次数；`reveal_threshold` 为自动结算的刮开面积比例，
+| 字段 | 说明 | 约束 / 默认值 |
+| --- | --- | --- |
+| `rewards` | 奖级列表（名称 / 符号 / 积分 / 概率） | 不能为空；概率 0~1，所有概率之和 ≤ 1，其余为未中奖 |
+| `filler_symbols` | 未中奖格子的填充符号 | 至少 3 个 |
+| `daily_limit` | 每日可抽次数，**0 表示不限次数** | 缺省为 10 |
+| `reveal_threshold` | 刮开面积达到此比例自动结算 | 必须在 `0.05 ~ 1.0`，缺省为 0.4 |
+
+中奖卡保证有且仅有一条三连（横/竖/斜），未中奖卡保证没有任何三连。
 满足"刮开面积达到阈值"**或**"9 个图案全部出现"任一条件即结算。
 本项目是演示用小游戏，不是彩票或博彩系统。
+
+> ⚠️ **注意**：`daily_limit` 只在**浏览器端**（`localStorage`）判断，服务端并不强制。
+> 清空缓存、换浏览器或直接调接口都能绕过，不具备防刷能力。若要真正限制次数需改后端。
 
 ## 本地开发（任意平台）
 
@@ -78,7 +94,7 @@ cargo run -p scratch-card-server
 
 ```bash
 cargo test
-cargo clippy
+cargo clippy -- -D warnings
 ```
 
 前端无构建步骤，直接修改 `web/` 下文件刷新即可。
