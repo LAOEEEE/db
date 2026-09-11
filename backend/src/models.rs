@@ -24,6 +24,7 @@ pub const GRID_SIZE: usize = 9;
 /// - `Clone`：可以复制出一份，不用担心所有权被拿走
 /// - `Serialize`：能把结构体转成 JSON（Rust 的名字叫 serde 序列化）
 /// - `Deserialize`：能从 JSON 转回结构体（serde 反序列化）
+///
 /// 前端发的请求要能被反序列化，后端回的响应要能被序列化，所以这 4 个都加上。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Cell {
@@ -47,6 +48,7 @@ pub struct Cell {
 /// Rust 里没有 null。想表达"可能没有"就用 Option，它有两个值：
 /// - `Some(值)`：有值
 /// - `None`：没有值
+///
 /// 没中奖的卡，tier_name 就是 None。
 ///
 /// 关于 `std::time::Instant`：

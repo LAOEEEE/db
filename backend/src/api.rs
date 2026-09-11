@@ -34,6 +34,7 @@ use crate::state::SharedStore;
 /// 元组（tuple）里有两个东西：
 /// 1. SharedStore：卡片仓库（见 state.rs），所有请求都要读写它
 /// 2. Arc<GameConfig>：只读的游戏配置，所有请求都要查它（概率表等）
+///
 /// Arc 让两个字段能被多个线程安全共享。
 ///
 /// 起别名的意义：`State<AppState>` 比 `State<(SharedStore, Arc<GameConfig>)>` 短太多。

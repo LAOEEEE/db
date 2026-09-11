@@ -25,6 +25,9 @@ cargo clippy -- -D warnings
 echo "==> release build for ${TARGET}"
 cargo build --release --target "${TARGET}" -p scratch-card-server
 
+# 版本号从 workspace 的 Cargo.toml 读取（单一来源），也可用 VERSION=... 环境变量覆盖
+VERSION="${VERSION:-$(grep -m1 '^version' "$ROOT/Cargo.toml" | sed -E 's/.*"([^"]+)".*/\1/')}"
+
 DIST="$ROOT/dist"
 echo "==> bundling into ${DIST}"
 rm -rf "$DIST"
@@ -38,3 +41,12 @@ cp systemd/scratch-card.service "$DIST/"
 BIN_SIZE=$(du -h "$DIST/scratch-card-server" | cut -f1)
 WEB_SIZE=$(du -sh "$DIST/web" | cut -f1)
 echo "==> done. binary=${BIN_SIZE}, web=${WEB_SIZE}"
+
+# ---- 打包发行版 tar.gz，输出到 dist/ ----
+# 压缩包只含运行所需文件，不含发行说明
+ARCHIVE="scratch-card-v${VERSION}.tar.gz"
+echo "==> packaging ${ARCHIVE}"
+tar -czf "$DIST/$ARCHIVE" -C "$DIST" \
+    scratch-card-server web config scratch-card.service
+ARCHIVE_SIZE=$(du -h "$DIST/$ARCHIVE" | cut -f1)
+echo "==> archive ${ARCHIVE_SIZE} -> ${DIST}/${ARCHIVE}"

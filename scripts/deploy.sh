@@ -30,7 +30,10 @@ echo "==> deploy mode: ${MODE}"
 
 if [ "$MODE" = "system" ]; then
     PI_USER="${PI_USER:-$(ssh "$PI_HOST" 'id -un')}"
-    ssh "$PI_HOST" "sudo mkdir -p ${PI_DIR}/web/assets ${PI_DIR}/config"
+    # 目录用 sudo 创建后属主是 root，而下面的 rsync 是以普通用户身份运行的，
+    # 会因权限不足写不进去（Operation not permitted / Permission denied），
+    # 所以建完目录立刻把属主改成登录用户（服务本身也以该用户运行）。
+    ssh "$PI_HOST" "sudo mkdir -p ${PI_DIR}/web/assets ${PI_DIR}/config && sudo chown -R ${PI_USER}:${PI_USER} ${PI_DIR}"
     rsync -az --delete "$DIST/web/" "$PI_HOST:${PI_DIR}/web/"
     rsync -az "$DIST/config/game.json" "$PI_HOST:${PI_DIR}/config/game.json"
     scp "$DIST/scratch-card-server" "$PI_HOST:/tmp/scratch-card-server.new"

@@ -112,7 +112,9 @@ sudo apt install gcc-aarch64-linux-gnu rsync
 
 ```bash
 wsl bash -lc 'cd /mnt/d/ydd_workspace/db && bash scripts/build.sh'
-# 产物在 dist/：scratch-card-server、web/、config/、systemd unit
+# 产物组装到 dist/：scratch-card-server、web/、config/、scratch-card.service
+# 以及压缩包 scratch-card-v<版本>.tar.gz（仅含上述运行文件，不含发行说明）
+# （版本取自 Cargo.toml，可用 VERSION=... 环境变量覆盖）
 ```
 
 部署（树莓派开启 ssh，默认 laoeeee@192.168.1.246）：
