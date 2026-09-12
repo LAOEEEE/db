@@ -12,12 +12,15 @@ use std::path::Path;
 
 use serde::Deserialize;
 
+use crate::models::MAX_PAGE_CELLS;
+
 /// 一个奖级（档位）。对应 config/game.json 里 rewards 数组里的一项。
 ///
 /// 字段含义（也是 JSON 里的键）：
-/// - `name`：奖级名称，如"一等奖"
-/// - `symbol`：中奖符号，如 💎。中奖卡的三连就是这个符号
-/// - `value`：中了给多少积分
+/// - `name`：奖级名称，如"二等奖"
+/// - `symbol`：中奖时刮奖格里显示的金额文本，如 "$20"。
+///   现在开奖形式是数字，这个字段放的就是金额文本本身
+/// - `value`：中了给多少钱（前端按它累计奖金）
 /// - `probability`：抽中这个奖级的概率，范围 0~1，如 0.001 = 千分之一
 #[derive(Debug, Clone, Deserialize)]
 pub struct RewardTier {
@@ -38,16 +41,45 @@ pub struct RewardTier {
 pub struct GameConfig {
     /// 奖级列表，按数组顺序排列（一般从高到低）
     pub rewards: Vec<RewardTier>,
-    /// 未中奖格子用的填充符号。中奖卡里除了三连之外，其余格子也从这里取
-    pub filler_symbols: Vec<String>,
+    /// 一页最多放几个刮奖格，默认 5（上限是 MAX_PAGE_CELLS）
+    #[serde(default = "default_page_size")]
+    pub page_size: u32,
+    /// 用户最多能设置多少次刮奖，默认 100
+    #[serde(default = "default_max_count")]
+    pub max_count: u32,
+    /// 没中奖时刮奖格里显示的文本，默认 "$0"
+    #[serde(default = "default_lose_label")]
+    pub lose_label: String,
     /// 每天最多能抽几次。**0 表示不限次数**
+    /// 现在"这次要刮几次"由用户在页面上自己设置，这个字段保留做兜底：
+    /// 非 0 时它会限制用户能设置的上限。
     /// `#[serde(default = "default_daily_limit")]` 意思是：
     /// 如果 JSON 里没写这个键，就用 default_daily_limit() 函数的返回值（10）兜底
     #[serde(default = "default_daily_limit")]
     pub daily_limit: u32,
-    /// 刮开面积达到多大比例就自动结算（如 0.9 = 刮开 90%）
+    /// 刮开面积达到多大比例就算这一格刮开了（如 0.7 = 刮开 70%）
     #[serde(default = "default_reveal_threshold")]
     pub reveal_threshold: f64,
+    /// **旧版字段**：以前 3×3 玩法里"未中奖格子"用的填充符号。
+    /// 现在开奖形式改成了金额数字，这个字段已经不再使用，
+    /// 但保留下来并且允许缺失，好让旧的 game.json 依然能正常启动。
+    #[serde(default)]
+    pub filler_symbols: Vec<String>,
+}
+
+/// 兜底值：一页默认 5 个刮奖格
+fn default_page_size() -> u32 {
+    MAX_PAGE_CELLS as u32
+}
+
+/// 兜底值：用户最多设置 100 次
+fn default_max_count() -> u32 {
+    100
+}
+
+/// 兜底值：没中奖显示 "$0"
+fn default_lose_label() -> String {
+    "$0".to_string()
 }
 
 /// 兜底值：每日次数默认 10 次
@@ -55,9 +87,9 @@ fn default_daily_limit() -> u32 {
     10
 }
 
-/// 兜底值：刮开阈值默认 0.4（40%）
+/// 兜底值：刮开阈值默认 0.7（70%）
 fn default_reveal_threshold() -> f64 {
-    0.4
+    0.7
 }
 
 /// 内置默认配置。
@@ -74,14 +106,16 @@ impl Default for GameConfig {
     fn default() -> Self {
         let json = r#"{
             "rewards": [
-                { "name": "一等奖", "symbol": "💎", "value": 1000, "probability": 0.001 },
-                { "name": "二等奖", "symbol": "💰", "value": 100, "probability": 0.01 },
-                { "name": "三等奖", "symbol": "🎁", "value": 20, "probability": 0.05 },
-                { "name": "安慰奖", "symbol": "🍀", "value": 5, "probability": 0.2 }
+                { "name": "特等奖", "symbol": "$1000", "value": 1000, "probability": 0.001 },
+                { "name": "一等奖", "symbol": "$100", "value": 100, "probability": 0.01 },
+                { "name": "二等奖", "symbol": "$20", "value": 20, "probability": 0.05 },
+                { "name": "三等奖", "symbol": "$5", "value": 5, "probability": 0.2 }
             ],
-            "filler_symbols": ["⭐", "🍒", "🔔", "🍋", "🍇", "🍉"],
+            "page_size": 5,
+            "max_count": 100,
+            "lose_label": "$0",
             "daily_limit": 10,
-            "reveal_threshold": 0.4
+            "reveal_threshold": 0.7
         }"#;
         serde_json::from_str(json).expect("builtin default config must parse")
     }
@@ -125,11 +159,23 @@ impl GameConfig {
         if self.rewards.is_empty() {
             return Err(ConfigError::Invalid("rewards 不能为空"));
         }
-        // 填充符号至少要 3 个。
-        // 因为中奖卡要求"恰好只有一条三连"，如果填充符号太少，
-        // 随机生成时很容易凑出额外的三连，兜底代码也依赖至少 3 个不同符号
-        if self.filler_symbols.len() < 3 {
-            return Err(ConfigError::Invalid("filler_symbols 至少需要 3 个"));
+        // 一页的格子数必须落在界面能显示的范围内
+        if !(1..=MAX_PAGE_CELLS as u32).contains(&self.page_size) {
+            return Err(ConfigError::Invalid(
+                "page_size 必须在 1..=MAX_PAGE_CELLS 范围内",
+            ));
+        }
+        // 用户能设置的次数上限必须合理
+        if !(1..=10_000).contains(&self.max_count) {
+            return Err(ConfigError::Invalid("max_count 必须在 1..=10000 范围内"));
+        }
+        // 次数上限至少不能比一页还小，否则永远翻不到第二页
+        if self.max_count < self.page_size {
+            return Err(ConfigError::Invalid("max_count 不能小于 page_size"));
+        }
+        // 没中奖的文本不能为空（否则刮开是空白，用户会以为卡住了）
+        if self.lose_label.is_empty() {
+            return Err(ConfigError::Invalid("lose_label 不能为空"));
         }
         // 刮开阈值必须在 5% 到 100% 之间。
         // 太小的阈值（比如 0）会导致用户刚刮一下就自动结算，体验很差
@@ -143,7 +189,7 @@ impl GameConfig {
             if !(0.0..=1.0).contains(&tier.probability) {
                 return Err(ConfigError::Invalid("概率必须在 0..=1 范围内"));
             }
-            // 中奖符号不能是空字符串（否则显示不出来）
+            // 金额文本不能是空字符串（否则显示不出来）
             if tier.symbol.is_empty() {
                 return Err(ConfigError::Invalid("奖级 symbol 不能为空"));
             }

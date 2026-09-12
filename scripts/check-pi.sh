@@ -16,13 +16,22 @@ for path in / /assets/style.css /assets/app.js; do
     [ "$code" = 200 ] && ok "static $path 200" || no "static $path ($code)"
 done
 
+# 一页默认 5 格
 NEW=$(curl -s -m 5 -X POST "$URL/api/game/new" -H 'Content-Type: application/json' -d '{}')
 CID=$(printf '%s' "$NEW" | sed -n 's/.*"card_id": *"\([0-9a-f]\{32\}\)".*/\1/p')
+CELLS=$(printf '%s' "$NEW" | grep -o '"id":' | wc -l | tr -d ' ')
 [ -n "$CID" ] && ok "new game -> card_id" || { no "new game"; exit 1; }
+[ "$CELLS" = 5 ] && ok "new page -> 5 cells" || no "new page cells ($CELLS)"
+
+# 指定次数时应该只发这么多格（夹到 1..=page_size）
+NEW3=$(curl -s -m 5 -X POST "$URL/api/game/new" -H 'Content-Type: application/json' -d '{"count":3}')
+CELLS3=$(printf '%s' "$NEW3" | grep -o '"id":' | wc -l | tr -d ' ')
+[ "$CELLS3" = 3 ] && ok "new page count=3 -> 3 cells" || no "new page count=3 ($CELLS3)"
 
 REV=$(curl -s -m 5 -X POST "$URL/api/game/reveal" -H 'Content-Type: application/json' \
     -d "{\"card_id\":\"$CID\",\"cell_id\":4}")
-printf '%s' "$REV" | grep -q '"cell_id":4' && printf '%s' "$REV" | grep -q '"symbol"' \
+printf '%s' "$REV" | grep -q '"cell_id":4' && printf '%s' "$REV" | grep -q '"label"' \
+    && printf '%s' "$REV" | grep -q '"amount"' \
     && ok "reveal cell 4" || no "reveal: $REV"
 
 code=$(curl -s -m 5 -o /dev/null -w "%{http_code}" -X POST "$URL/api/game/reveal" \

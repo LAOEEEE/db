@@ -1,11 +1,13 @@
 {
   "rewards": [
-    { "name": "一等奖", "symbol": "💎", "value": 1000, "probability": 0.001 },
-    { "name": "二等奖", "symbol": "💰", "value": 100, "probability": 0.01 },
-    { "name": "三等奖", "symbol": "🎁", "value": 20, "probability": 0.05 },
-    { "name": "安慰奖", "symbol": "🍀", "value": 5, "probability": 0.2 }
+    { "name": "特等奖", "symbol": "$1000", "value": 1000, "probability": 0.001 },
+    { "name": "一等奖", "symbol": "$100", "value": 100, "probability": 0.01 },
+    { "name": "二等奖", "symbol": "$20", "value": 20, "probability": 0.05 },
+    { "name": "三等奖", "symbol": "$5", "value": 5, "probability": 0.2 }
   ],
-  "filler_symbols": ["⭐", "🍒", "🔔", "🍋", "🍇", "🍉"],
+  "page_size": 5,
+  "max_count": 100,
+  "lose_label": "$0",
   "daily_limit": 0,
-  "reveal_threshold": 0.9
+  "reveal_threshold": 0.7
 }
