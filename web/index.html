@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#241657">
+    <title>幸运刮刮乐</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎉</text></svg>">
+    <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+    <main class="page">
+        <header class="header">
+            <h1>🎉 幸运刮刮乐</h1>
+            <p class="subtitle">今天的好运属于你</p>
+        </header>
+
+        <section class="card" id="card">
+            <div class="card-title">✨ 刮开好运 ✨</div>
+
+            <div class="board-wrap">
+                <div class="board" id="board">
+                    <button type="button" class="cell" data-id="0" aria-label="格子0"></button>
+                    <button type="button" class="cell" data-id="1" aria-label="格子1"></button>
+                    <button type="button" class="cell" data-id="2" aria-label="格子2"></button>
+                    <button type="button" class="cell" data-id="3" aria-label="格子3"></button>
+                    <button type="button" class="cell" data-id="4" aria-label="格子4"></button>
+                    <button type="button" class="cell" data-id="5" aria-label="格子5"></button>
+                    <button type="button" class="cell" data-id="6" aria-label="格子6"></button>
+                    <button type="button" class="cell" data-id="7" aria-label="格子7"></button>
+                    <button type="button" class="cell" data-id="8" aria-label="格子8"></button>
+                </div>
+                <canvas class="foil" id="foil" hidden></canvas>
+                <div class="hint" id="hint">点击下方按钮开始</div>
+            </div>
+
+            <div class="result" id="result" aria-live="polite"></div>
+        </section>
+
+        <button type="button" class="action" id="action">开始刮奖</button>
+
+        <footer class="status">
+            <span id="remaining">今日剩余：-- 次</span>
+            <span id="points">今日积分：0</span>
+        </footer>
+    </main>
+
+    <script src="/assets/app.js" defer></script>
+</body>
+</html>

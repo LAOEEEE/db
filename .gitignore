@@ -1,0 +1,9 @@
+/target
+**/*.rs.bk
+Cargo.lock.bak
+/dist
+/.edge-e2e
+/.edge-profile
+/.edge-profile2
+/screenshot-*.png
+/screenshot-*.jpg
