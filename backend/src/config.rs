@@ -24,6 +24,16 @@ use crate::models::MAX_PAGE_CELLS;
 /// - `probability`：抽中这个奖级的概率，范围 0~1，如 0.001 = 千分之一
 #[derive(Debug, Clone, Deserialize)]
 pub struct RewardTier {
+    /// 1.1 改成金额开奖后，界面只显示 `symbol`/`value`，这个名字不再展示给用户，
+    /// 目前只有本模块的单元测试在断言消息里读它。
+    ///
+    /// 这里用 `allow` 而不是 `expect`：这个 lint 只在**非测试构建**里触发，
+    /// `cargo test` 构建下 `name` 确实被读过，写 `expect` 反而会报
+    /// unfulfilled_lint_expectations。
+    ///
+    /// 字段本身保留——它是 game.json 里的真实数据，将来想在界面标注
+    /// "中了二等奖"时直接就能用。
+    #[allow(dead_code)]
     pub name: String,
     pub symbol: String,
     pub value: u32,
@@ -63,7 +73,16 @@ pub struct GameConfig {
     /// **旧版字段**：以前 3×3 玩法里"未中奖格子"用的填充符号。
     /// 现在开奖形式改成了金额数字，这个字段已经不再使用，
     /// 但保留下来并且允许缺失，好让旧的 game.json 依然能正常启动。
+    ///
+    /// 注意：**不能直接删掉这个字段**。结构体上有 `deny_unknown_fields`，
+    /// 一旦删了，v1.0.0 那种带 `filler_symbols` 的旧 game.json 会解析失败，
+    /// 服务直接起不来。保留它才是兼容旧配置的做法。
+    ///
+    /// 用 `expect` 而不是 `allow`：全仓库（含测试）都没有任何地方读它，
+    /// 这个 lint 在任何构建下都会触发，所以 `expect` 一定被满足；
+    /// 哪天真的有人用上它了，编译器会反过来提醒把这行删掉。
     #[serde(default)]
+    #[expect(dead_code)]
     pub filler_symbols: Vec<String>,
 }
 
