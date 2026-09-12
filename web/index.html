@@ -12,37 +12,71 @@
     <main class="page">
         <header class="header">
             <h1>🎉 幸运刮刮乐</h1>
-            <p class="subtitle">今天的好运属于你</p>
+            <p class="subtitle" id="subtitle">先设置次数，再开刮</p>
         </header>
 
-        <section class="card" id="card">
-            <div class="card-title">✨ 刮开好运 ✨</div>
+        <!-- ① 设置页：进入页面时用户自己决定这一轮刮几次 -->
+        <section class="card" id="setup">
+            <div class="card-title">🎯 这一轮刮几次？</div>
 
-            <div class="board-wrap">
-                <div class="board" id="board">
-                    <button type="button" class="cell" data-id="0" aria-label="格子0"></button>
-                    <button type="button" class="cell" data-id="1" aria-label="格子1"></button>
-                    <button type="button" class="cell" data-id="2" aria-label="格子2"></button>
-                    <button type="button" class="cell" data-id="3" aria-label="格子3"></button>
-                    <button type="button" class="cell" data-id="4" aria-label="格子4"></button>
-                    <button type="button" class="cell" data-id="5" aria-label="格子5"></button>
-                    <button type="button" class="cell" data-id="6" aria-label="格子6"></button>
-                    <button type="button" class="cell" data-id="7" aria-label="格子7"></button>
-                    <button type="button" class="cell" data-id="8" aria-label="格子8"></button>
-                </div>
-                <canvas class="foil" id="foil" hidden></canvas>
-                <div class="hint" id="hint">点击下方按钮开始</div>
+            <div class="chips" id="chips">
+                <button type="button" class="chip" data-count="5">5 次</button>
+                <button type="button" class="chip" data-count="10">10 次</button>
+                <button type="button" class="chip" data-count="20">20 次</button>
+                <button type="button" class="chip" data-count="50">50 次</button>
             </div>
 
-            <div class="result" id="result" aria-live="polite"></div>
+            <div class="count-row">
+                <button type="button" class="stepper" id="minus" aria-label="减少次数">−</button>
+                <input type="number" id="countInput" class="count-input" inputmode="numeric"
+                       min="1" max="100" step="1" value="10" aria-label="刮奖次数">
+                <button type="button" class="stepper" id="plus" aria-label="增加次数">+</button>
+            </div>
+
+            <p class="tip" id="setupTip">每页最多刮 <b>5</b> 次，刮完这页点“下一页”继续</p>
+            <button type="button" class="action" id="start">开始刮奖</button>
         </section>
 
-        <button type="button" class="action" id="action">开始刮奖</button>
+        <!-- ② 游戏页：一页 5 个刮奖格，刮完翻页 -->
+        <section class="card" id="game" hidden>
+            <div class="card-title">✨ 刮开好运 ✨</div>
+
+            <div class="counters">
+                <div class="counter">
+                    <span class="counter-num" id="leftNum">0</span>
+                    <span class="counter-label">未刮</span>
+                </div>
+                <div class="counter">
+                    <span class="counter-num" id="doneNum">0</span>
+                    <span class="counter-label">已刮</span>
+                </div>
+                <div class="counter">
+                    <span class="counter-num" id="pageNum">1/1</span>
+                    <span class="counter-label">第几页</span>
+                </div>
+            </div>
+
+            <!-- 刮奖格由 app.js 一次性建好（最多 5 个），翻页时循环复用，不反复创建 DOM -->
+            <div class="board" id="board"></div>
+
+            <div class="result" id="result" aria-live="polite"></div>
+
+            <div class="totals">
+                <span>本页 <b id="pageWin">$0</b></span>
+                <span>今日 <b id="totalWin">$0</b></span>
+            </div>
+
+            <button type="button" class="action" id="action" disabled>刮开上面的格子</button>
+            <div class="secondary">
+                <button type="button" class="ghost" id="skipPage">一键刮开本页</button>
+                <button type="button" class="ghost" id="restart">重新设置次数</button>
+            </div>
+        </section>
 
         <footer class="status">
-            <span id="remaining">今日剩余：-- 次</span>
-            <span id="points">今日积分：0</span>
+            <span id="footNote">刮开面积达标自动开奖</span>
         </footer>
+        <noscript>本游戏需要开启 JavaScript 才能运行。</noscript>
     </main>
 
     <script src="/assets/app.js" defer></script>

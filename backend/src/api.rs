@@ -25,7 +25,8 @@ use serde_json::json;
 
 use crate::config::GameConfig;
 use crate::models::{
-    FinishRequest, FinishResponse, Game, GameError, NewCardResponse, RevealRequest, RevealResponse,
+    FinishRequest, FinishResponse, Game, GameError, NewCardRequest, NewCardResponse, RevealRequest,
+    RevealResponse,
 };
 use crate::ratelimit::RateLimiter;
 use crate::state::SharedStore;
@@ -58,7 +59,7 @@ pub fn router(state: AppState, rate_capacity: u32) -> Router {
         // 五个接口的路径与处理函数对应关系
         .route("/health", get(health))                 // GET  健康检查
         .route("/config", get(get_config))             // GET  拿公开配置
-        .route("/game/new", post(new_game))            // POST 新建卡
+        .route("/game/new", post(new_game))            // POST 新建一页
         .route("/game/reveal", post(reveal))           // POST 刮一格
         .route("/game/finish", post(finish))           // POST 结算
         // 限制请求体最大 4KB。刮奖请求体很小，超了基本就是恶意请求
@@ -122,13 +123,20 @@ pub async fn get_config(
     Json(json!({
         "daily_limit": config.daily_limit,
         "reveal_threshold": config.reveal_threshold,
+        "page_size": config.page_size,
+        "max_count": config.max_count,
+        "lose_label": config.lose_label,
     }))
 }
 
-/// 新建卡片：POST /api/game/new
+/// 新建一页刮刮卡：POST /api/game/new
 ///
-/// 流程：用配置发一张新卡（见 game.rs 的 Game::create）→
-/// 放进仓库 → 返回 card_id 和格子编号（不含图案）。
+/// 请求体可以带 `count`（这一页要几个刮奖格），不写或写 {} 就按一页满格来。
+/// 真正把数字夹到合法范围（1..=page_size）的是 game.rs 的 Game::create，
+/// 所以前端传 0、传 999 都不会出问题。
+///
+/// 流程：用配置发一页新卡（见 game.rs 的 Game::create）→
+/// 放进仓库 → 返回 card_id 和格子编号（不含金额）。
 ///
 /// 返回类型 `Result<Json<NewCardResponse>, ApiError>`：
 /// Ok = 成功的 JSON 响应，Err = 转成错误响应返回给前端。
@@ -136,8 +144,16 @@ pub async fn get_config(
 /// 立刻 return Err(ApiError::internal())，不往下走。
 pub async fn new_game(
     State((store, config)): State<AppState>,
+    payload: Result<AxumJson<NewCardRequest>, axum::extract::rejection::JsonRejection>,
 ) -> Result<Json<NewCardResponse>, ApiError> {
-    let game = Game::create(&config);
+    // 请求体解析失败（比如没带 body）时不去为难用户：按一页满格处理。
+    // 这个接口只是"发一页新牌"，宽松一点更稳，也不会留下脏数据。
+    let count = match payload {
+        Ok(AxumJson(req)) => req.count.unwrap_or(config.page_size),
+        Err(_) => config.page_size,
+    }
+    .max(1) as usize;
+    let game = Game::create(&config, count);
     let response = game.to_new_card_response();
     {
         // 一对大括号：让写锁尽快释放（离开作用域就自动 drop）。

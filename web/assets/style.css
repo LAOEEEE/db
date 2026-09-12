@@ -49,18 +49,6 @@ body {
     border-radius: 22px;
     padding: 20px;
     box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
-    transition: transform 0.25s ease;
-}
-
-.card.win { animation: win-pulse 0.9s ease-in-out 2; }
-
-@keyframes win-pulse {
-    0%, 100% { box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28); }
-    50% {
-        box-shadow: 0 0 0 4px rgba(255, 205, 80, 0.75),
-            0 18px 48px rgba(255, 180, 40, 0.45);
-        transform: translateY(-2px);
-    }
 }
 
 .card-title {
@@ -68,50 +56,183 @@ body {
     font-size: 17px;
     font-weight: 700;
     color: #b8860b;
+    margin-bottom: 16px;
+}
+
+/* ---------- 设置页 ---------- */
+
+.chips {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
     margin-bottom: 14px;
 }
 
-.board-wrap {
-    position: relative;
-    border-radius: 16px;
-    overflow: hidden;
+.chip {
+    border: 2px solid #e6ddfa;
+    background: #f7f3ff;
+    color: #5b4a86;
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+}
+
+.chip:active { transform: scale(0.96); }
+
+.chip.on {
+    background: linear-gradient(180deg, #ffe08a, #ffc93c);
+    border-color: #f0b400;
+    color: #6b4500;
+}
+
+.count-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.stepper {
+    width: 46px;
+    height: 46px;
+    border: 0;
+    border-radius: 14px;
+    background: #f1ecff;
+    color: #6a51a6;
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.12s ease;
+}
+
+.stepper:active { transform: scale(0.94); background: #e4dbff; }
+
+.count-input {
+    width: 120px;
+    height: 46px;
+    border: 2px solid #e6ddfa;
+    border-radius: 14px;
+    text-align: center;
+    font-size: 22px;
+    font-weight: 800;
+    color: #46356f;
+    font-variant-numeric: tabular-nums;
+    background: #fbfaff;
+    -moz-appearance: textfield;
+}
+
+.count-input:focus { outline: 2px solid #b18cff; outline-offset: 1px; }
+.count-input::-webkit-outer-spin-button,
+.count-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+.tip {
+    margin: 0 0 16px;
+    text-align: center;
+    font-size: 13px;
+    color: #8b8696;
+    line-height: 1.5;
+}
+
+.tip b { color: #b8860b; }
+
+/* ---------- 游戏页 ---------- */
+
+.counters {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.counter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 4px;
+    border-radius: 12px;
+    background: #f7f5fd;
+}
+
+.counter-num {
+    font-size: 20px;
+    font-weight: 800;
+    color: #4a3b7a;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+
+.counter:nth-child(1) .counter-num { color: #d2691e; }
+.counter:nth-child(2) .counter-num { color: #2e8b57; }
+
+.counter-label {
+    font-size: 12px;
+    color: #8b8696;
 }
 
 .board {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
     gap: 10px;
-    aspect-ratio: 1;
 }
 
-.cell {
-    border: 0;
-    border-radius: 12px;
+/* 一个刮奖格 = 底层金额 + 上层可刮涂层 */
+.slot {
+    position: relative;
+    height: 64px;
+    border-radius: 14px;
+    overflow: hidden;
     background: #f3ecff;
-    font-size: clamp(26px, 9vw, 40px);
-    line-height: 1;
+    isolation: isolate;
+}
+
+.face {
+    position: absolute;
+    inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0;
-    cursor: default;
-    transition: background 0.2s ease, transform 0.2s ease;
+    gap: 8px;
+    background: #f3ecff;
+    transition: background 0.25s ease;
 }
 
-.cell.revealed {
-    background: #fff7e0;
-    animation: cell-pop 0.35s ease;
+.amount {
+    font-size: clamp(20px, 6vw, 26px);
+    font-weight: 800;
+    color: #9a94ad;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.5px;
 }
 
-.cell.winning {
-    background: linear-gradient(135deg, #ffe9a0, #ffd054);
+.amount.lose { color: #b3aec0; }
+
+.slot.revealed .amount { animation: amount-pop 0.32s ease; }
+
+/* 中奖格：背景整块变黄，金额用深金色，一眼就能看到 */
+.slot.win .face {
+    background: linear-gradient(135deg, #ffe9a0 0%, #ffd054 100%);
     box-shadow: inset 0 0 0 2px #f0b400;
 }
 
-@keyframes cell-pop {
-    0% { transform: scale(0.7); }
-    70% { transform: scale(1.12); }
-    100% { transform: scale(1); }
+.slot.win .amount { color: #7a4b00; }
+
+.slot.win { animation: win-pulse 0.8s ease-in-out 2; }
+
+@keyframes amount-pop {
+    0% { transform: scale(0.75); opacity: 0.4; }
+    70% { transform: scale(1.1); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes win-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 190, 40, 0); }
+    50% { box-shadow: 0 0 0 4px rgba(255, 205, 80, 0.7); }
 }
 
 .foil {
@@ -127,35 +248,53 @@ body {
 
 .foil.cleared {
     opacity: 0;
-    transition: opacity 0.5s ease;
+    transition: opacity 0.4s ease;
     pointer-events: none;
 }
 
-.hint {
+/* 左上角的格号，浮在涂层之上但不挡手势 */
+.tag {
     position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
+    left: 6px;
+    top: 6px;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: rgba(36, 22, 87, 0.35);
     color: #fff;
-    font-size: 16px;
-    font-weight: 600;
-    text-shadow: 0 2px 8px rgba(60, 20, 100, 0.6);
-    background: rgba(120, 80, 190, 0.25);
-    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 20px;
+    text-align: center;
     pointer-events: none;
-    padding: 12px;
 }
 
-.hint[hidden] { display: none; }
+.slot.revealed .tag { opacity: 0.25; }
+
+.float-prize {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    font-weight: 800;
+    color: #c8860a;
+    pointer-events: none;
+    animation: float-up 0.9s ease-out forwards;
+}
+
+@keyframes float-up {
+    0% { opacity: 0; transform: translateY(-50%) scale(0.7); }
+    30% { opacity: 1; transform: translateY(-50%) scale(1.15); }
+    100% { opacity: 0; transform: translateY(-50%) scale(1); }
+}
 
 .result {
     margin-top: 14px;
     text-align: center;
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 700;
-    min-height: 24px;
+    min-height: 22px;
     color: #9a94ad;
 }
 
@@ -165,17 +304,35 @@ body {
 .result.error { color: #d34b4b; }
 
 @keyframes result-pop {
-    0% { transform: scale(0.8); opacity: 0; }
+    0% { transform: scale(0.85); opacity: 0; }
     100% { transform: scale(1); opacity: 1; }
 }
 
+.totals {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-size: 14px;
+    color: #8b8696;
+}
+
+.totals b {
+    color: #c8860a;
+    font-size: 16px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 按钮 ---------- */
+
 .action {
+    width: 100%;
+    margin-top: 16px;
     border: 0;
     border-radius: 16px;
     padding: 16px;
     font-size: 19px;
     font-weight: 800;
-    letter-spacing: 2px;
+    letter-spacing: 1px;
     color: #4a2c00;
     background: linear-gradient(180deg, #ffd45e 0%, #f5a623 100%);
     box-shadow: 0 8px 20px rgba(245, 166, 35, 0.35);
@@ -190,12 +347,39 @@ body {
     cursor: not-allowed;
 }
 
-.status {
+.secondary {
     display: flex;
-    justify-content: space-between;
-    padding: 0 6px;
-    font-size: 14px;
-    color: #e6dcff;
+    gap: 10px;
+    margin-top: 10px;
 }
 
-#points { color: #ffd970; font-weight: 700; }
+.ghost {
+    flex: 1;
+    border: 2px solid #ece6fb;
+    background: #faf8ff;
+    color: #6a51a6;
+    border-radius: 14px;
+    padding: 11px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.12s ease;
+}
+
+.ghost:active { transform: scale(0.97); background: #f1ecff; }
+
+.status {
+    text-align: center;
+    font-size: 13px;
+    color: #d9ccff;
+}
+
+noscript { color: #ffd970; }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.001s !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001s !important;
+    }
+}
