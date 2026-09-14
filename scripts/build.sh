@@ -36,17 +36,18 @@ cp "$CARGO_TARGET_DIR/${TARGET}/release/scratch-card-server" "$DIST/"
 cp web/index.html "$DIST/web/"
 cp web/assets/* "$DIST/web/assets/"
 cp config/game.json "$DIST/config/"
-cp systemd/scratch-card.service "$DIST/"
 
 BIN_SIZE=$(du -h "$DIST/scratch-card-server" | cut -f1)
 WEB_SIZE=$(du -sh "$DIST/web" | cut -f1)
 echo "==> done. binary=${BIN_SIZE}, web=${WEB_SIZE}"
 
 # ---- 打包发行版 tar.gz，输出到 dist/ ----
-# 压缩包只含运行所需文件，不含发行说明
+# 压缩包只含运行所需文件，不含发行说明。
+# 不含 service unit：部署脚本会就地生成用户级 unit（见 deploy.sh），
+# 放一个 system 级的模板进来只会让人误装、进而和用户级服务抢同一个端口。
 ARCHIVE="scratch-card-v${VERSION}.tar.gz"
 echo "==> packaging ${ARCHIVE}"
 tar -czf "$DIST/$ARCHIVE" -C "$DIST" \
-    scratch-card-server web config scratch-card.service
+    scratch-card-server web config
 ARCHIVE_SIZE=$(du -h "$DIST/$ARCHIVE" | cut -f1)
 echo "==> archive ${ARCHIVE_SIZE} -> ${DIST}/${ARCHIVE}"

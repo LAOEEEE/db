@@ -36,8 +36,6 @@
 │   ├── deploy.sh        # rsync/scp 部署到树莓派并重启服务
 │   ├── check-pi.sh      # 部署后对 LAN API 做冒烟检查
 │   └── e2e-browser.mjs  # 无头浏览器端到端测试（鼠标 + 触摸）
-├── systemd/
-│   └── scratch-card.service  # systemd 服务单元模板（含逐行配置注释）
 ├── dist/                # 构建产物（已 gitignore）
 ```
 
@@ -85,7 +83,7 @@
 | `lose_label` | 没中奖时格子显示的文本 | 不能为空，缺省 `"$0"` |
 | `daily_limit` | 次数上限兜底，**0 表示不限** | 非 0 时用户在设置页最多只能填这么多，缺省为 10 |
 | `reveal_threshold` | 刮开面积达到此比例就算刮开这一格 | 必须在 `0.05 ~ 1.0`，缺省为 0.7 |
-| `filler_symbols` | **旧版字段**（3×3 三连玩法用的填充符号） | 现在已不生效，删掉或保留都不会报错 |
+| `filler_symbols` | **旧版字段**（3×3 三连玩法用的填充符号） | 已不生效，配置里缺失也能启动。**别从结构体里删掉它**：结构体开了 `deny_unknown_fields`，删掉后仍带此键的旧 `game.json` 会解析失败、服务起不来 |
 
 每一页最多 5 格，每格的奖级是**独立**按概率表抽的（一页里可能好几格同时中奖，也可能全没中）。
 刮开面积达到 `reveal_threshold` 就算这一格开奖；中奖格显示 `symbol`（如 `$20`）且背景变黄，
@@ -128,7 +126,7 @@ sudo apt install gcc-aarch64-linux-gnu rsync
 
 ```bash
 wsl bash -lc 'cd /mnt/d/ydd_workspace/db && bash scripts/build.sh'
-# 产物组装到 dist/：scratch-card-server、web/、config/、scratch-card.service
+# 产物组装到 dist/：scratch-card-server、web/、config/
 # 以及压缩包 scratch-card-v<版本>.tar.gz（仅含上述运行文件，不含发行说明）
 # （版本取自 Cargo.toml，可用 VERSION=... 环境变量覆盖）
 ```
@@ -139,12 +137,15 @@ wsl bash -lc 'cd /mnt/d/ydd_workspace/db && bash scripts/build.sh'
 wsl bash -lc 'cd /mnt/d/ydd_workspace/db && PI_HOST=laoeeee@192.168.1.246 bash scripts/deploy.sh'
 ```
 
-脚本自动检测目标 sudo 能力：
+采用**用户级 systemd**：文件装到 `~/scratch-card/`，unit 由部署脚本就地生成到
+`~/.config/systemd/user/`，全程不需要 sudo。部署顺序是"先停旧服务、清掉残留进程、
+等端口释放，再传文件、装 unit、启动"，避免出现新旧进程抢同一端口的中间状态。
 
-- **无免密 sudo**（当前树莓派情况）：文件装到 `~/scratch-card/`，使用 **用户级 systemd**
-  （`systemctl --user ...`），无需密码。首次部署后执行一次以实现断电开机自启：
-  `ssh -t laoeeee@192.168.1.246 'sudo loginctl enable-linger laoeeee'`
-- **有免密 sudo**：装到 `/opt/scratch-card/` 并安装系统级 unit（自动以登录用户运行）。
+首次部署后执行一次以实现断电开机自启（需要 root，一次性；之后不再需要 sudo）：
+
+```bash
+ssh -t laoeeee@192.168.1.246 'sudo loginctl enable-linger laoeeee'
+```
 
 部署后：
 
