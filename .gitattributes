@@ -1,0 +1,9 @@
+# 让 Git 自己识别文本文件并在仓库内统一按 LF 存储。
+* text=auto
+.gitattributes text eol=lf
+
+# 下面这些会被 WSL/Linux 直接执行或解析，必须强制 LF，
+# 否则 Windows 上 core.autocrlf=true 会在 checkout 时写成 CRLF，
+# 导致 bash 报 'bash\r: No such file or directory' / 'pipefail\r: invalid option name'。
+*.sh    text eol=lf
+*.service text eol=lf
