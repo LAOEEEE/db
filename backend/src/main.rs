@@ -11,8 +11,10 @@
 use std::net::SocketAddr;
 use std::sync::{Arc, RwLock};
 
+use axum::http::header::{HeaderValue, CACHE_CONTROL};
 use axum::Router;
 use tokio::net::TcpListener;
+use tower_http::set_header::SetResponseHeaderLayer;
 use tracing_subscriber::EnvFilter;
 
 // 声明这个二进制用到的其他模块。
@@ -103,7 +105,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .fallback(tower_http::services::ServeFile::new(format!(
                     "{web_dir}/index.html"
                 ))),
-        );
+        )
+        // 给所有响应补上 Cache-Control: no-cache。
+        //
+        // 为什么必须加：ServeDir 只会设置 Last-Modified，不会设置 Cache-Control。
+        // 而浏览器一旦遇到"既没有 Cache-Control 也没有 Expires"的响应，就会启用
+        // 启发式缓存，自己猜一个新鲜期，口径大致是：
+        //     新鲜期 ≈ (当前时间 − Last-Modified) × 10%
+        // 问题是这个 Last-Modified 来自它**当初缓存的那份旧文件**。旧文件放了一天，
+        // 浏览器就敢把旧 index.html / app.js 在本地留两个多小时，期间完全不问服务器——
+        // 表现为"后端明明重新部署了，页面上还是老界面"，而且刷新也未必管用。
+        //
+        // 注意 no-cache 不等于 no-store：它的意思是"用缓存之前必须先回服务器确认"，
+        // 不是"不许缓存"。配合上面已有的 Last-Modified，浏览器每次回来问一句，
+        // 没变就回一个不带响应体的 304，代价很小；变了才真正重传。
+        .layer(SetResponseHeaderLayer::overriding(
+            CACHE_CONTROL,
+            HeaderValue::from_static("no-cache"),
+        ));
 
     // ---- 6. 监听并开始服务 ----
     // 先绑定端口（.await 等待系统确认绑定成功）
